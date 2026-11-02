@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RISC-V Architecture Visualizer | Experiment 19</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0a0d12;
+            --bg-card: #111620;
+            --bg-card-subtle: #171f2c;
+            --border: #1f2a3a;
+            --border-highlight: #2a3a50;
+            --accent: #a3e635;
+            --accent-dim: rgba(163, 230, 53, 0.15);
+            --accent-glow: rgba(163, 230, 53, 0.35);
+            --text-main: #f1f5f9;
+            --text-muted: #8b9bb4;
+            --danger: #f87171;
+            --warning: #fbbf24;
+            --blue: #38bdf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(ellipse at 80% 0%, rgba(163, 230, 53, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 20% 100%, rgba(56, 189, 248, 0.03) 0%, transparent 60%);
+        }
+
+        header {
+            padding: 24px 36px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 13, 18, 0.85);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .tag-pill::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .nav-tab-item {
+            color: var(--text-muted);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .nav-tab-item.active {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 4px;
+        }
+
+        .header-title-sub {
+            font-size: 12px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .main-wrapper {
+            padding: 32px 36px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .hero-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 24px;
+            padding-bottom: 12px;
+        }
+
+        .hero-content h1 {
+            font-size: 42px;
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .hero-content h1 span {
+            color: var(--accent);
+        }
+
+        .hero-content p {
+            color: var(--text-muted);
+            font-size: 16px;
+            max-width: 650px;
+        }
+
+        .hero-stats {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 16px 24px;
+            border-radius: 12px;
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .hero-stats .badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+        }
+
+        .hero-stats .stat-value {
+            font-size: 38px;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+            margin-top: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .hero-stats .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr 340px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            padding: 14px 18px;
+            background: var(--bg-card-subtle);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title span.badge-num {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            color: var(--accent);
+        }
+
+        .card-body {
+            padding: 18px;
+        }
+
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 8px;
+        }
+
+        .input-box {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 15px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-box:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-dim);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+            font-weight: 700;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 16px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card-subtle);
+            border-color: var(--border-highlight);
+            color: var(--text-main);
+            flex: 1;
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-reset {
+            background: transparent;
+            border-color: var(--border);
+            color: var(--danger);
+        }
+
+        .btn-reset:hover {
+            border-color: var(--danger);
+            background: rgba(248, 113, 113, 0.1);
+        }
+
+        .sim-info-box {
+            margin-top: 20px;
+            padding: 14px;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .sim-info-box div {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .sim-info-box div:last-child {
+            margin-bottom: 0;
+        }
+
+        .sim-info-box .key {
+            color: var(--text-muted);
+        }
+
+        .sim-info-box .val {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .code-trace-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .code-trace-table th {
+            text-align: left;
+            padding: 10px 14px;
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-card-subtle);
+        }
+
+        .code-trace-table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            color: var(--text-muted);
+            vertical-align: middle;
+        }
+
+        .code-trace-table tr.active-instruction {
+            background: rgba(163, 230, 53, 0.12) !important;
+            color: var(--accent);
+        }
+
+        .code-trace-table tr.active-instruction td {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .code-trace-table tr.active-instruction td.pc-col {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .instruction-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .tag-arithmetic {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--blue);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .tag-branch {
+            background: rgba(251, 191, 36, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .tag-loop {
+            background: rgba(163, 230, 53, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(163, 230, 53, 0.3);
+        }
+
+        .tag-sys {
+            background: rgba(148, 163, 184, 0.15);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+
+        .register-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .register-tile {
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.3s;
+        }
+
+        .register-tile.highlight {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+            transform: scale(1.02);
+        }
+
+        .reg-left {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .reg-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .reg-desc {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .reg-val {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .reg-hex {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        .terminal-box {
+            margin-top: 18px;
+            background: #050709;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .terminal-header {
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .terminal-header::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+        }
+
+        .terminal-output {
+            color: #4ade80;
+            font-size: 13px;
+            line-height: 1.5;
+            min-height: 48px;
+            white-space: pre-wrap;
+        }
+
+        .branch-badge {
+            font-family: 'JetBrains Mono', monospace;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .branch-taken {
+            background: rgba(248, 113, 113, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .branch-not-taken {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid #4ade80;
+        }
+
+        .branch-none {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <div class="tag-pill">Experiment 19</div>
+            <div class="header-title-sub">RISC-V Architecture | Assembly Simulator</div>
+        </div>
+        <div class="nav-tabs">
+            <div class="nav-tab-item active">01 Arithmetic & Looping</div>
+            <div class="nav-tab-item" onclick="alert('Experiment 19 covers Arithmetic, Branching & Looping.')">02 Branch Predictor</div>
+            <div class="nav-tab-item" onclick="alert('Standard RV32I 32-bit Integer Instruction Architecture')">03 ISA Spec (RV32I)</div>
+        </div>
+    </header>
+
+    <div class="main-wrapper">
+        <div class="hero-banner">
+            <div class="hero-content">
+                <h1>Control flow.<br><span>One hardware loop.</span></h1>
+                <p>Observe arithmetic accumulation, parity bit branching, and unconditional PC loops executing cycle-by-cycle in an RV32I pipeline.</p>
+            </div>
+            <div class="hero-stats">
+                <span class="badge">Theoretical Sum</span>
+                <span class="stat-value" id="badge-expected-sum">30</span>
+                <span class="stat-label" id="badge-calc-desc">Even numbers: 2+4+6+8+10</span>
+            </div>
+        </div>
+
+        <div class="grid-layout">
+            <!-- Left Panel: Configuration & Run Controls -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span class="badge-num">01</span> Configure Input</div>
+                </div>
+                <div class="card-body">
+                    <div class="control-group">
+                        <label for="limit-input">Upper Limit (N)</label>
+                        <input type="number" id="limit-input" class="input-box" value="10" min="2" max="50">
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="btn-step" onclick="stepSim()">Step Cycle</button>
+                        <button class="btn btn-secondary" id="btn-run" onclick="toggleRun()">Auto Run</button>
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <button class="btn btn-reset" style="width: 100%;" onclick="resetSim()">Reset Simulator</button>
+                    </div>
+
+                    <div class="sim-info-box">
+                        <div><span class="key">Current State:</span> <span class="val" id="sim-state">IDLE</span></div>
+                        <div><span class="key">Cycle Count:</span> <span class="val" id="cycle-count">0</span></div>
+                        <div><span class="key">Program Counter (PC):</span> <span class="val" id="pc-disp">0x00000000</span></div>
+                        <div><span class="key">Branch Outcome:</span> <span id="branch-status" class="branch-badge branch-none">N/A</span></div>
+                    </div>
+
+                    <div class="terminal-box">
+                        <div class="terminal-header">Terminal / ecall console</div>
+                        <div class="terminal-output" id="terminal-out">> Simulator initialized. Press "Step Cycle" or "Auto Run".</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Panel: Assembly Trace Pipeline -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span class="badge-num">02</span> Assembly Execution Pipeline</div>
+                    <span style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--accent);">RV32I Core</span>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="code-trace-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">PC</th>
+                                <th style="width: 90px;">Class</th>
+                                <th>Instruction</th>
+                                <th>Semantic Operation</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trace-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right Panel: Register Bank -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span class="badge-num">03</span> Register Bank</div>
+                    <span style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">x0 - x31</span>
+                </div>
+                <div class="card-body">
+                    <div class="register-grid">
+                        <div class="register-tile" id="tile-t0">
+                            <div class="reg-left">
+                                <span class="reg-name">t0 (x5)</span>
+                                <span class="reg-desc">Upper limit (N)</span>
+                            </div>
+                            <div>
+                                <div class="reg-val" id="val-t0">0</div>
+                                <div class="reg-hex" id="hex-t0">0x00000000</div>
+                            </div>
+                        </div>
+
+                        <div class="register-tile" id="tile-t1">
+                            <div class="reg-left">
+                                <span class="reg-name">t1 (x6)</span>
+                                <span class="reg-desc">Counter index (i)</span>
+                            </div>
+                            <div>
+                                <div class="reg-val" id="val-t1">0</div>
+                                <div class="reg-hex" id="hex-t1">0x00000000</div>
+                            </div>
+                        </div>
+
+                        <div class="register-tile" id="tile-t2">
+                            <div class="reg-left">
+                                <span class="reg-name">t2 (x7)</span>
+                                <span class="reg-desc">Accumulator (sum)</span>
+                            </div>
+                            <div>
+                                <div class="reg-val" id="val-t2">0</div>
+                                <div class="reg-hex" id="hex-t2">0x00000000</div>
+                            </div>
+                        </div>
+
+                        <div class="register-tile" id="tile-t3">
+                            <div class="reg-left">
+                                <span class="reg-name">t3 (x28)</span>
+                                <span class="reg-desc">Parity flag (i & 1)</span>
+                            </div>
+                            <div>
+                                <div class="reg-val" id="val-t3">0</div>
+                                <div class="reg-hex" id="hex-t3">0x00000000</div>
+                            </div>
+                        </div>
+
+                        <div class="register-tile" id="tile-a0">
+                            <div class="reg-left">
+                                <span class="reg-name">a0 (x10)</span>
+                                <span class="reg-desc">Syscall function code</span>
+                            </div>
+                            <div>
+                                <div class="reg-val" id="val-a0">0</div>
+                                <div class="reg-hex" id="hex-a0">0x00000000</div>
+                            </div>
+                        </div>
+
+                        <div class="register-tile" id="tile-a1">
+                            <div class="reg-left">
+                                <span class="reg-name">a1 (x11)</span>
+                                <span class="reg-desc">Syscall argument</span>
+                            </div>
+                            <div>
+                                <div class="reg-val" id="val-a1">0</div>
+                                <div class="reg-hex" id="hex-a1">0x00000000</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const program = [
+            { pc: 0x00, type: "tag-arithmetic", label: "ARITHMETIC", asm: "li t0, N", desc: "Load limit N into t0", op: "init_t0" },
+            { pc: 0x04, type: "tag-arithmetic", label: "ARITHMETIC", asm: "li t1, 1", desc: "Initialize loop counter i = 1", op: "init_t1" },
+            { pc: 0x08, type: "tag-arithmetic", label: "ARITHMETIC", asm: "li t2, 0", desc: "Initialize sum accumulator = 0", op: "init_t2" },
+            { pc: 0x0C, type: "tag-loop", label: "LOOP EVAL", asm: "bgt t1, t0, loop_exit", desc: "If i > N, exit loop", op: "check_exit" },
+            { pc: 0x10, type: "tag-arithmetic", label: "BITWISE", asm: "andi t3, t1, 1", desc: "Compute t3 = i & 1 (check parity)", op: "calc_parity" },
+            { pc: 0x14, type: "tag-branch", label: "BRANCH", asm: "bnez t3, skip_add", desc: "If t3 != 0 (odd), branch forward", op: "check_odd" },
+            { pc: 0x18, type: "tag-arithmetic", label: "ARITHMETIC", asm: "add t2, t2, t1", desc: "sum = sum + i (add even number)", op: "add_sum" },
+            { pc: 0x1C, type: "tag-loop", label: "INCREMENT", asm: "addi t1, t1, 1", desc: "i = i + 1", op: "inc_counter" },
+            { pc: 0x20, type: "tag-loop", label: "LOOP JUMP", asm: "j loop_start", desc: "Jump back to PC 0x0C", op: "jump_loop" },
+            { pc: 0x24, type: "tag-sys", label: "SYSCALL", asm: "li a0, 4", desc: "Print result string", op: "sys_str" },
+            { pc: 0x28, type: "tag-sys", label: "SYSCALL", asm: "li a0, 1; mv a1, t2", desc: "Print sum value", op: "sys_int" },
+            { pc: 0x2C, type: "tag-sys", label: "TERMINATE", asm: "li a0, 10; ecall", desc: "Halt execution", op: "halt" }
+        ];
+
+        let state = {
+            t0: 10,
+            t1: 0,
+            t2: 0,
+            t3: 0,
+            a0: 0,
+            a1: 0,
+            pcIndex: 0,
+            cycles: 0,
+            isRunning: false,
+            runInterval: null,
+            finished: false
+        };
+
+        function calculateExpected(limit) {
+            let total = 0;
+            let parts = [];
+            for (let i = 2; i <= limit; i += 2) {
+                total += i;
+                parts.push(i);
+            }
+            return { total, desc: parts.length > 5 ? `${parts.slice(0, 4).join('+')}...+${parts[parts.length-1]}` : parts.join('+') };
+        }
+
+        function updateHeroStats() {
+            const limit = parseInt(document.getElementById('limit-input').value) || 10;
+            const exp = calculateExpected(limit);
+            document.getElementById('badge-expected-sum').innerText = exp.total;
+            document.getElementById('badge-calc-desc').innerText = `Even numbers: ${exp.desc}`;
+        }
+
+        document.getElementById('limit-input').addEventListener('input', () => {
+            updateHeroStats();
+            resetSim();
+        });
+
+        function renderPipeline() {
+            const tbody = document.getElementById('trace-body');
+            tbody.innerHTML = '';
+            program.forEach((inst, index) => {
+                const tr = document.createElement('tr');
+                if (index === state.pcIndex && !state.finished) {
+                    tr.className = 'active-instruction';
+                }
+                tr.innerHTML = `
+                    <td class="pc-col">0x${inst.pc.toString(16).padStart(2, '0').toUpperCase()}</td>
+                    <td><span class="instruction-tag ${inst.type}">${inst.label}</span></td>
+                    <td style="color: ${index === state.pcIndex ? 'var(--accent)' : 'var(--text-main)'}; font-weight: 600;">${inst.asm}</td>
+                    <td>${inst.desc}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toHex(val) {
+            return '0x' + (val >>> 0).toString(16).padStart(8, '0');
+        }
+
+        function updateUI(highlightReg = null) {
+            document.getElementById('val-t0').innerText = state.t0;
+            document.getElementById('hex-t0').innerText = toHex(state.t0);
+
+            document.getElementById('val-t1').innerText = state.t1;
+            document.getElementById('hex-t1').innerText = toHex(state.t1);
+
+            document.getElementById('val-t2').innerText = state.t2;
+            document.getElementById('hex-t2').innerText = toHex(state.t2);
+
+            document.getElementById('val-t3').innerText = state.t3;
+            document.getElementById('hex-t3').innerText = toHex(state.t3);
+
+            document.getElementById('val-a0').innerText = state.a0;
+            document.getElementById('hex-a0').innerText = toHex(state.a0);
+
+            document.getElementById('val-a1').innerText = state.a1;
+            document.getElementById('hex-a1').innerText = toHex(state.a1);
+
+            document.querySelectorAll('.register-tile').forEach(tile => tile.classList.remove('highlight'));
+            if (highlightReg) {
+                const tile = document.getElementById(`tile-${highlightReg}`);
+                if (tile) tile.classList.add('highlight');
+            }
+
+            document.getElementById('cycle-count').innerText = state.cycles;
+            const currentPc = program[state.pcIndex] ? program[state.pcIndex].pc : 0x2C;
+            document.getElementById('pc-disp').innerText = `0x${currentPc.toString(16).padStart(8, '0')}`;
+
+            renderPipeline();
+        }
+
+        function stepSim() {
+            if (state.finished) return;
+
+            document.getElementById('sim-state').innerText = "EXECUTING";
+            state.cycles++;
+
+            const currentInst = program[state.pcIndex];
+            let highlight = null;
+            const branchBadge = document.getElementById('branch-status');
+
+            branchBadge.className = "branch-badge branch-none";
+            branchBadge.innerText = "N/A";
+
+            switch (currentInst.op) {
+                case "init_t0":
+                    state.t0 = parseInt(document.getElementById('limit-input').value) || 10;
+                    highlight = "t0";
+                    state.pcIndex++;
+                    break;
+                case "init_t1":
+                    state.t1 = 1;
+                    highlight = "t1";
+                    state.pcIndex++;
+                    break;
+                case "init_t2":
+                    state.t2 = 0;
+                    highlight = "t2";
+                    state.pcIndex++;
+                    break;
+                case "check_exit":
+                    if (state.t1 > state.t0) {
+                        branchBadge.className = "branch-badge branch-taken";
+                        branchBadge.innerText = "TAKEN (EXIT)";
+                        state.pcIndex = program.findIndex(i => i.op === "sys_str");
+                    } else {
+                        branchBadge.className = "branch-badge branch-not-taken";
+                        branchBadge.innerText = "FALLTHROUGH";
+                        state.pcIndex++;
+                    }
+                    break;
+                case "calc_parity":
+                    state.t3 = state.t1 & 1;
+                    highlight = "t3";
+                    state.pcIndex++;
+                    break;
+                case "check_odd":
+                    if (state.t3 !== 0) {
+                        branchBadge.className = "branch-badge branch-taken";
+                        branchBadge.innerText = "TAKEN (SKIP)";
+                        state.pcIndex = program.findIndex(i => i.op === "inc_counter");
+                    } else {
+                        branchBadge.className = "branch-badge branch-not-taken";
+                        branchBadge.innerText = "NOT TAKEN";
+                        state.pcIndex++;
+                    }
+                    break;
+                case "add_sum":
+                    state.t2 = state.t2 + state.t1;
+                    highlight = "t2";
+                    state.pcIndex++;
+                    break;
+                case "inc_counter":
+                    state.t1 = state.t1 + 1;
+                    highlight = "t1";
+                    state.pcIndex++;
+                    break;
+                case "jump_loop":
+                    branchBadge.className = "branch-badge branch-taken";
+                    branchBadge.innerText = "JUMP (LOOP)";
+                    state.pcIndex = program.findIndex(i => i.op === "check_exit");
+                    break;
+                case "sys_str":
+                    state.a0 = 4;
+                    highlight = "a0";
+                    state.pcIndex++;
+                    break;
+                case "sys_int":
+                    state.a0 = 1;
+                    state.a1 = state.t2;
+                    highlight = "a1";
+                    state.pcIndex++;
+                    break;
+                case "halt":
+                    state.a0 = 10;
+                    state.finished = true;
+                    highlight = "a0";
+                    document.getElementById('sim-state').innerText = "HALTED (COMPLETE)";
+                    document.getElementById('terminal-out').innerText = 
+                        `> Program finished.\n> Sum of even numbers from 1 to ${state.t0} is: ${state.t2}\n> Return code: 0`;
+                    if (state.isRunning) toggleRun();
+                    break;
+            }
+
+            updateUI(highlight);
+        }
+
+        function toggleRun() {
+            const btn = document.getElementById('btn-run');
+            if (state.isRunning) {
+                clearInterval(state.runInterval);
+                state.isRunning = false;
+                btn.innerText = "Auto Run";
+                btn.classList.remove('btn-reset');
+                btn.classList.add('btn-secondary');
+            } else {
+                if (state.finished) resetSim();
+                state.isRunning = true;
+                btn.innerText = "Pause";
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-reset');
+                state.runInterval = setInterval(() => {
+                    stepSim();
+                }, 140);
+            }
+        }
+
+        function resetSim() {
+            if (state.isRunning) toggleRun();
+            state = {
+                t0: parseInt(document.getElementById('limit-input').value) || 10,
+                t1: 0,
+                t2: 0,
+                t3: 0,
+                a0: 0,
+                a1: 0,
+                pcIndex: 0,
+                cycles: 0,
+                isRunning: false,
+                runInterval: null,
+                finished: false
+            };
+            document.getElementById('sim-state').innerText = "IDLE";
+            document.getElementById('branch-status').className = "branch-badge branch-none";
+            document.getElementById('branch-status').innerText = "N/A";
+            document.getElementById('terminal-out').innerText = '> Simulator reset. Press "Step Cycle" or "Auto Run".';
+            updateUI();
+        }
+
+        // Initialize on page load
+        updateHeroStats();
+        updateUI();
+    </script>
+</body>
+</html>
