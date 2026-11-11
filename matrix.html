@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8086 Based-Indexed Matrix Simulator | Activity 2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0a0d12;
+            --bg-card: #111620;
+            --bg-card-subtle: #171f2c;
+            --border: #1f2a3a;
+            --border-highlight: #2a3a50;
+            --accent: #a3e635;
+            --accent-dim: rgba(163, 230, 53, 0.15);
+            --accent-glow: rgba(163, 230, 53, 0.35);
+            --text-main: #f1f5f9;
+            --text-muted: #8b9bb4;
+            --danger: #ef4444;
+            --warning: #fbbf24;
+            --blue: #38bdf8;
+            --purple: #c084fc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(ellipse at 80% 0%, rgba(163, 230, 53, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 20% 100%, rgba(56, 189, 248, 0.03) 0%, transparent 60%);
+        }
+
+        header {
+            padding: 18px 36px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 13, 18, 0.85);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .tag-pill::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        .header-title-sub {
+            font-size: 12px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .main-wrapper {
+            padding: 24px 36px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .hero-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 20px;
+        }
+
+        .hero-content h1 {
+            font-size: 34px;
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+        }
+
+        .hero-content h1 span {
+            color: var(--accent);
+        }
+
+        .hero-content p {
+            color: var(--text-muted);
+            font-size: 14px;
+            max-width: 780px;
+        }
+
+        .hero-stats {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 12px 20px;
+            border-radius: 12px;
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .hero-stats .badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+        }
+
+        .hero-stats .stat-value {
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1.1;
+            margin-top: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr 340px;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            padding: 12px 18px;
+            background: var(--bg-card-subtle);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title span.badge-num {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            color: var(--accent);
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 6px;
+        }
+
+        .input-box {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-box:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-dim);
+        }
+
+        .btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .btn-trigger {
+            background: var(--accent);
+            color: #000;
+            font-weight: 800;
+            margin-bottom: 10px;
+            border: 1px solid var(--accent);
+            box-shadow: 0 0 14px var(--accent-glow);
+        }
+
+        .btn-trigger:hover {
+            box-shadow: 0 0 20px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card-subtle);
+            border-color: var(--border-highlight);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        /* 3x3 Matrix Grid Layout */
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+            background: #080b10;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .matrix-cell {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 8px;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .matrix-cell:hover {
+            border-color: var(--border-highlight);
+        }
+
+        .matrix-cell .cell-coords {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .matrix-cell .cell-val {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .matrix-cell.target {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .matrix-cell.target .cell-val {
+            color: var(--accent);
+        }
+
+        /* Linear Row-Major Memory Strip */
+        .linear-strip {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            background: #080b10;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        .strip-cell {
+            min-width: 44px;
+            padding: 6px 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .strip-cell.highlight {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        /* Bus & Instruction lines */
+        .bus-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px;
+            background: #080b10;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+
+        .bus-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .bus-line.active {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+            color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .timeline-steps {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .timeline-steps li {
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .timeline-steps li.current-step {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+            font-weight: 700;
+        }
+
+        .register-tile {
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 8px;
+        }
+
+        .terminal-box {
+            background: #050709;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 12px;
+        }
+
+        .terminal-header {
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .terminal-header::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+        }
+
+        .terminal-output {
+            color: #4ade80;
+            font-size: 11px;
+            line-height: 1.5;
+            min-height: 85px;
+            max-height: 130px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <div class="tag-pill">Activity 2</div>
+            <div class="header-title-sub">8086 Microprocessor | Based-Indexed Addressing Model</div>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent);">
+            EFFECTIVE ADDRESS: [BX + SI]
+        </div>
+    </header>
+
+    <div class="main-wrapper">
+        <div class="hero-banner">
+            <div class="hero-content">
+                <h1>8086 Matrix Access.<br><span>Row-major based-indexed addressing.</span></h1>
+                <p>Simulate how an 8086 processor computes Effective Address (EA) using Base Register (BX = MATRIX + Row×3) and Index Register (SI = Col) to retrieve byte elements in single-cycle addressing without pointers.</p>
+            </div>
+            <div class="hero-stats">
+                <span class="badge">Target Element (AL)</span>
+                <span class="stat-value" id="badge-val">66H</span>
+                <span class="stat-label" id="badge-target">MATRIX[1][2]</span>
+            </div>
+        </div>
+
+        <div class="grid-layout">
+            <!-- Left Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span class="badge-num">01</span> Specified Indices</div>
+                </div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <label for="input-row">Row Index (i) [0 to 2]</label>
+                        <input type="number" id="input-row" class="input-box" value="1" min="0" max="2">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="input-col">Column Index (j) [0 to 2]</label>
+                        <input type="number" id="input-col" class="input-box" value="2" min="0" max="2">
+                    </div>
+
+                    <button class="btn btn-trigger" onclick="stepInstruction()">
+                        ▶ STEP NEXT INSTRUCTION
+                    </button>
+
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                        <button class="btn btn-secondary" id="btn-run" onclick="toggleAuto()">Auto Run</button>
+                        <button class="btn btn-secondary" onclick="resetSim()">Reset</button>
+                    </div>
+
+                    <div class="terminal-box">
+                        <div class="terminal-header">8086 Bus & ALU Log</div>
+                        <div class="terminal-output" id="log-out">> 8086 Execution Unit Ready.
+> MATRIX located at base 0x0200.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span class="badge-num">02</span> Matrix & Physical Memory</div>
+                    <span style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--accent);">Row-Major Form</span>
+                </div>
+                <div class="card-body">
+                    <!-- 3x3 2D Visualizer -->
+                    <div style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 6px;">
+                        LOGICAL 3×3 MATRIX:
+                    </div>
+                    <div class="matrix-grid" id="matrix-grid"></div>
+
+                    <!-- Linear Memory Representation -->
+                    <div style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 6px;">
+                        ROW-MAJOR SEQUENTIAL MEMORY (DATA SEGMENT):
+                    </div>
+                    <div class="linear-strip" id="linear-strip"></div>
+
+                    <!-- Address Bus & EA computation -->
+                    <div class="bus-container">
+                        <div class="bus-line" id="line-formula">
+                            <span>FORMULA: EA = BX + SI</span>
+                            <span id="stat-formula" style="font-weight: 700;">--</span>
+                        </div>
+                        <div class="bus-line" id="line-address">
+                            <span>PHYSICAL ADDRESS: (DS × 16) + EA</span>
+                            <span id="stat-address" style="font-weight: 700;">--</span>
+                        </div>
+                    </div>
+
+                    <!-- 8086 Instruction Stepping Pipeline -->
+                    <div class="card-title" style="margin-bottom: 8px;">
+                        <span class="badge-num">Assembly</span> Instruction Execution Flow
+                    </div>
+                    <ul class="timeline-steps">
+                        <li id="step-0" class="current-step">1. MOV AL, ROW & MUL BL -> Compute Row Offset (i × 3)</li>
+                        <li id="step-1">2. LEA BX, MATRIX & ADD BX, AX -> Base Reg BX = Start of Row i</li>
+                        <li id="step-2">3. MOV SI, COL -> Index Reg SI = Column Offset (j)</li>
+                        <li id="step-3">4. MOV AL, [BX + SI] -> Fetch Element using Based-Indexed EA</li>
+                        <li id="step-4">5. MOV RESULT, AL -> Store to memory variable & complete</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span class="badge-num">03</span> 8086 CPU Registers</div>
+                    <span style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">16-Bit Architecture</span>
+                </div>
+                <div class="card-body">
+                    <div class="register-tile">
+                        <div>
+                            <div style="font-weight: 700;">Base Register (BX)</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">Matrix Base + Row Offset</div>
+                        </div>
+                        <div id="reg-bx" style="color: var(--accent); font-weight: 700;">0x0200</div>
+                    </div>
+
+                    <div class="register-tile">
+                        <div>
+                            <div style="font-weight: 700;">Index Register (SI)</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">Source Index (Column)</div>
+                        </div>
+                        <div id="reg-si" style="color: var(--blue); font-weight: 700;">0x0000</div>
+                    </div>
+
+                    <div class="register-tile">
+                        <div>
+                            <div style="font-weight: 700;">Accumulator (AX/AL)</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">Arithmetic & Target Byte</div>
+                        </div>
+                        <div id="reg-ax" style="color: var(--warning); font-weight: 700;">0x0000</div>
+                    </div>
+
+                    <div class="register-tile">
+                        <div>
+                            <div style="font-weight: 700;">Data Segment (DS)</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">Segment Base Address</div>
+                        </div>
+                        <div style="color: var(--purple); font-weight: 700;">0x1000</div>
+                    </div>
+
+                    <div class="register-tile">
+                        <div>
+                            <div style="font-weight: 700;">Effective Address (EA)</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">[BX + SI] Offset</div>
+                        </div>
+                        <div id="reg-ea" style="color: var(--accent); font-weight: 700;">0x0200</div>
+                    </div>
+
+                    <div class="register-tile">
+                        <div>
+                            <div style="font-weight: 700;">RESULT Variable</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">[0x0220] Memory</div>
+                        </div>
+                        <div id="reg-result" style="color: var(--text-main); font-weight: 700;">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MATRIX_DATA = [
+            ["11H", "22H", "33H"],
+            ["44H", "55H", "66H"],
+            ["77H", "88H", "99H"]
+        ];
+
+        const BASE_ADDR = 0x0200;
+        const DS = 0x1000;
+        let row = 1;
+        let col = 2;
+        let step = 0;
+        let autoInterval = null;
+
+        let regBX = BASE_ADDR;
+        let regSI = 0;
+        let regAX = 0;
+        let regEA = BASE_ADDR;
+        let result = "--";
+
+        function renderMatrixAndStrip() {
+            const grid = document.getElementById('matrix-grid');
+            const strip = document.getElementById('linear-strip');
+            grid.innerHTML = '';
+            strip.innerHTML = '';
+
+            let linearIdx = 0;
+            const targetLinear = (row * 3) + col;
+
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const val = MATRIX_DATA[r][c];
+                    const isTarget = (r === row && c === col);
+
+                    // 2D Cell
+                    const cell = document.createElement('div');
+                    cell.className = `matrix-cell ${isTarget ? 'target' : ''}`;
+                    cell.innerHTML = `
+                        <div class="cell-coords">[${r}][${c}]</div>
+                        <div class="cell-val">${val}</div>
+                    `;
+                    cell.onclick = () => {
+                        document.getElementById('input-row').value = r;
+                        document.getElementById('input-col').value = c;
+                        resetSim();
+                    };
+                    grid.appendChild(cell);
+
+                    // Linear Strip Cell
+                    const sc = document.createElement('div');
+                    sc.className = `strip-cell ${linearIdx === targetLinear && step >= 3 ? 'highlight' : ''}`;
+                    sc.innerHTML = `
+                        <div style="font-size: 8px; color: var(--text-muted);">+${linearIdx}</div>
+                        <div>${val}</div>
+                    `;
+                    strip.appendChild(sc);
+
+                    linearIdx++;
+                }
+            }
+        }
+
+        function appendLog(msg) {
+            const out = document.getElementById('log-out');
+            out.innerText += "\n> " + msg;
+            out.scrollTop = out.scrollHeight;
+        }
+
+        function setStepHighlight(sIdx) {
+            for (let i = 0; i <= 4; i++) {
+                const el = document.getElementById('step-' + i);
+                if (el) el.className = (i === sIdx) ? 'current-step' : '';
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('reg-bx').innerText = '0x' + regBX.toString(16).toUpperCase().padStart(4, '0');
+            document.getElementById('reg-si').innerText = '0x' + regSI.toString(16).toUpperCase().padStart(4, '0');
+            document.getElementById('reg-ax').innerText = '0x' + regAX.toString(16).toUpperCase().padStart(4, '0');
+            document.getElementById('reg-ea').innerText = '0x' + regEA.toString(16).toUpperCase().padStart(4, '0');
+            document.getElementById('reg-result').innerText = result;
+
+            document.getElementById('badge-val').innerText = MATRIX_DATA[row][col];
+            document.getElementById('badge-target').innerText = `MATRIX[${row}][${col}]`;
+
+            const phys = (DS * 16) + regEA;
+            document.getElementById('stat-formula').innerText = `EA = 0x${regBX.toString(16).toUpperCase()} + 0x${regSI.toString(16).toUpperCase()} = 0x${regEA.toString(16).toUpperCase()}`;
+            document.getElementById('stat-address').innerText = `0x${phys.toString(16).toUpperCase()}`;
+            renderMatrixAndStrip();
+        }
+
+        function resetSim() {
+            if (autoInterval) toggleAuto();
+            row = parseInt(document.getElementById('input-row').value);
+            col = parseInt(document.getElementById('input-col').value);
+
+            if (row < 0) row = 0; if (row > 2) row = 2;
+            if (col < 0) col = 0; if (col > 2) col = 2;
+
+            step = 0;
+            regBX = BASE_ADDR;
+            regSI = 0;
+            regAX = 0;
+            regEA = BASE_ADDR;
+            result = "--";
+
+            document.getElementById('line-formula').className = 'bus-line';
+            document.getElementById('line-address').className = 'bus-line';
+            document.getElementById('log-out').innerText = `> Initialized for MATRIX[${row}][${col}].\n> Base MATRIX = 0x0200, N = 3.`;
+
+            setStepHighlight(0);
+            updateUI();
+        }
+
+        function stepInstruction() {
+            if (step === 0) {
+                // Step 1: Compute Row Offset
+                const rowOffset = row * 3;
+                regAX = rowOffset;
+                appendLog(`MOV AL, ${row} | MUL BL (3) -> AX = Row Offset = ${rowOffset} bytes.`);
+                setStepHighlight(1);
+                step = 1;
+            } else if (step === 1) {
+                // Step 2: Base Register Setup
+                regBX = BASE_ADDR + regAX;
+                appendLog(`LEA BX, MATRIX | ADD BX, AX -> BX = 0x${regBX.toString(16).toUpperCase()} (Points to Row ${row} start).`);
+                setStepHighlight(2);
+                step = 2;
+            } else if (step === 2) {
+                // Step 3: Index Register Setup
+                regSI = col;
+                appendLog(`MOV SI, ${col} -> SI = Column Index ${col}.`);
+                setStepHighlight(3);
+                step = 3;
+            } else if (step === 3) {
+                // Step 4: Based-Indexed Fetch [BX + SI]
+                regEA = regBX + regSI;
+                const fetched = MATRIX_DATA[row][col];
+                regAX = parseInt(fetched.replace('H', ''), 16);
+                document.getElementById('line-formula').className = 'bus-line active';
+                document.getElementById('line-address').className = 'bus-line active';
+                appendLog(`Based-Indexed Fetch: MOV AL, [BX + SI] -> Loaded ${fetched} from EA 0x${regEA.toString(16).toUpperCase()}.`);
+                setStepHighlight(4);
+                step = 4;
+            } else if (step === 4) {
+                // Step 5: Store Result
+                result = MATRIX_DATA[row][col];
+                appendLog(`MOV RESULT, AL -> Stored ${result} into variable RESULT. EXECUTION COMPLETE!`);
+                step = 5;
+                if (autoInterval) toggleAuto();
+            }
+            updateUI();
+        }
+
+        function toggleAuto() {
+            const btn = document.getElementById('btn-run');
+            if (autoInterval) {
+                clearInterval(autoInterval);
+                autoInterval = null;
+                btn.innerText = 'Auto Run';
+            } else {
+                if (step >= 5) resetSim();
+                btn.innerText = 'Pause';
+                autoInterval = setInterval(() => stepInstruction(), 800);
+            }
+        }
+
+        document.getElementById('input-row').addEventListener('input', () => resetSim());
+        document.getElementById('input-col').addEventListener('input', () => resetSim());
+
+        resetSim();
+    </script>
+</body>
+</html>
